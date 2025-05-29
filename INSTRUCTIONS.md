@@ -21,12 +21,12 @@ Welcome! In this guided tutorial, you'll build **Mini-Shell**, a basic Unix-like
    cd mini-shell
    ```
 
-3. \*\*Edit \*\***`Cargo.toml`** to include dependencies:
+3. **Edit `Cargo.toml` to include dependencies**:
 
    ```toml
    [dependencies]
    nix = "0.27"  # Provides low-level OS functions like fork, execvp, dup2
-   ```s
+   ```
 
 ---
 
