@@ -426,72 +426,15 @@ for _ in 0..num_cmds {
 ```
 
 ### 🔍 Explanation:
-
-* **`command.split('|')`**: Breaks the input string into separate commands.
-* **`pipe()`**: Creates a new read/write pipe between commands.
-* **`fork()`**: Spawns a child process for each command.
-* **`dup2()`**: Replaces `stdin` or `stdout` with the appropriate pipe end.
-* **`close()`**: Prevents leaking file descriptors.
-* **`execvp()`**: Runs each command in its process.
-* **Parent waits** for all child processes to complete.rust
-  use nix::unistd::{pipe, fork, dup2, close, ForkResult};
-  use nix::sys::wait::waitpid;
-  use std::ffi::CString;
-
-let parts: Vec<\&str> = command.split('|').map(|s| s.trim()).collect();
-let num\_cmds = parts.len();
-let mut fds = vec!\[];
-
-// Create pipes for N-1 links
-for \_ in 0..num\_cmds - 1 {
-fds.push(pipe().expect("pipe failed"));
-}
-
-for i in 0..num\_cmds {
-match unsafe { fork() } {
-Ok(ForkResult::Child) => {
-// If not first command, read from previous pipe
-if i > 0 {
-dup2(fds\[i - 1].0, 0).unwrap();
-}
-// If not last command, write to next pipe
-if i < num\_cmds - 1 {
-dup2(fds\[i].1, 1).unwrap();
-}
-// Close all pipe fds
-for (r, w) in \&fds {
-let \_ = close(\*r);
-let \_ = close(\*w);
-}
-let tokens: Vec<CString> = parts\[i].split\_whitespace()
-.map(|s| CString::new(s).unwrap())
-.collect();
-execvp(\&tokens\[0], \&tokens).expect("execvp failed");
-},
-Ok(ForkResult::Parent { .. }) => continue,
-Err(err) => eprintln!("Fork failed: {}", err),
-}
-}
-
-// Parent: close all fds and wait for all children
-for (r, w) in fds {
-let \_ = close(r);
-let \_ = close(w);
-}
-for \_ in 0..num\_cmds {
-waitpid(None, None).ok();
-}
-
-````
-
-### 🔍 Explanation:
 - **`command.split('|')`**: Breaks the input string into separate commands.
 - **`pipe()`**: Creates a new read/write pipe between commands.
 - **`fork()`**: Spawns a child process for each command.
 - **`dup2()`**: Replaces `stdin` or `stdout` with the appropriate pipe end.
 - **`close()`**: Prevents leaking file descriptors.
 - **`execvp()`**: Runs each command in its process.
-- **Parent waits** for all child processes to complete.rust
+- **Parent waits** for all child processes to complete.
+
+```rust
 use nix::unistd::{pipe, fork, dup2, close, ForkResult};
 use nix::sys::wait::waitpid;
 use std::ffi::CString;
@@ -539,6 +482,8 @@ for (r, w) in fds {
 for _ in 0..num_cmds {
     waitpid(None, None).ok();
 }
+```
+
 ```rust
 use nix::unistd::{pipe, fork, dup2, close, ForkResult};
 use nix::sys::wait::waitpid;
